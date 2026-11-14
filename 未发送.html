@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ededed">
+<meta name="color-scheme" content="light only">
+<title>未发送 · 聊天体短篇</title>
+<style>
+  :root{
+    --bg:#ededed;
+    --me:#95ec69;
+    --you:#ffffff;
+    --ink:#191919;
+    --muted:#a3a3a3;
+    --line:#dcdcdc;
+    --paper:#fffdf8;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    margin:0;background:#d9d9d9;color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Helvetica Neue",sans-serif;
+    font-size:15px;line-height:1.6;
+    display:flex;justify-content:center;
+    overscroll-behavior:none;
+  }
+  .phone{
+    width:100%;max-width:460px;height:100%;
+    display:flex;flex-direction:column;
+    background:var(--bg);
+    box-shadow:0 0 40px rgba(0,0,0,.18);
+  }
+  header{
+    flex:0 0 auto;
+    padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;
+    background:#f7f7f7;
+    border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:10px;
+    z-index:5;
+  }
+  .back{font-size:26px;line-height:1;color:#333;margin-top:-3px;opacity:.85}
+  .who{flex:1;text-align:center;display:flex;flex-direction:column;align-items:center}
+  .who b{font-size:16px;font-weight:600;letter-spacing:.5px}
+  .who i{font-size:11px;color:var(--muted);font-style:normal;margin-top:1px;letter-spacing:.4px}
+  .dots{font-size:16px;color:#333;letter-spacing:1px;opacity:.7}
+
+  .chat{
+    flex:1 1 auto;overflow-y:auto;overflow-x:hidden;
+    padding:14px 12px 22px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .titlecard{
+    margin:6px 0 20px;padding:24px 18px;
+    background:linear-gradient(160deg,#ffffff,#f3f1ec);
+    border-radius:10px;
+    text-align:center;
+    box-shadow:0 1px 0 rgba(0,0,0,.04);
+  }
+  .titlecard h1{
+    margin:0;font-size:22px;letter-spacing:7px;font-weight:500;color:#2b2b2b;
+  }
+  .titlecard p{margin:12px 0 0;font-size:12px;color:#9a968e;letter-spacing:1px;line-height:1.95}
+
+  .time{
+    text-align:center;font-size:11px;color:var(--muted);
+    margin:18px 0 12px;letter-spacing:.5px;
+  }
+  .split{
+    text-align:center;font-size:11px;color:#9c968c;
+    margin:26px 0 16px;letter-spacing:1px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .split::before,.split::after{
+    content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,#cfc9bd,transparent);
+  }
+
+  .row{display:flex;align-items:flex-start;gap:8px;margin-bottom:10px}
+  .row.me{flex-direction:row-reverse}
+
+  .av{
+    flex:0 0 auto;width:34px;height:34px;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;color:#fff;letter-spacing:1px;
+    margin-top:2px;user-select:none;
+  }
+  .av.you{background:linear-gradient(150deg,#c9a37a,#a97f57)}
+  .av.me{background:linear-gradient(150deg,#7f8794,#5d6470)}
+  .av.q{background:linear-gradient(150deg,#b9b3a6,#948d7f)}
+
+  .bub{
+    position:relative;max-width:calc(100% - 92px);
+    padding:8px 12px;border-radius:7px;
+    font-size:15px;line-height:1.62;word-break:break-word;
+    white-space:pre-wrap;
+  }
+  .you .bub{background:var(--you);box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  .me .bub{background:var(--me)}
+  .you .bub::before{
+    content:"";position:absolute;left:-5px;top:13px;
+    border:5px solid transparent;border-right-color:var(--you);border-left:0;
+  }
+  .me .bub::before{
+    content:"";position:absolute;right:-5px;top:13px;
+    border:5px solid transparent;border-left-color:var(--me);border-right:0;
+  }
+
+  .row.fail .bub{opacity:.85}
+  .bang{
+    flex:0 0 auto;width:16px;height:16px;border-radius:50%;
+    background:#e34d4d;color:#fff;font-size:11px;line-height:16px;
+    text-align:center;font-weight:700;margin-top:14px;
+  }
+
+  .draft{
+    margin:14px 0;padding:0;
+    background:var(--paper);
+    border:1px dashed #d6cdbc;
+    border-radius:8px;
+    overflow:hidden;
+  }
+  .dhead{
+    display:flex;align-items:center;gap:8px;
+    padding:7px 12px;
+    background:rgba(0,0,0,.025);
+    border-bottom:1px dashed #e2d9c9;
+  }
+  .badge{
+    font-size:10px;letter-spacing:1px;color:#a8845a;
+    border:1px solid #e0d1b8;border-radius:3px;
+    padding:1px 5px;background:#fff;
+  }
+  .badge.del{color:#a09a90;border-color:#dedad2}
+  .ddate{font-size:11px;color:#b3a894;letter-spacing:.5px;margin-left:auto}
+  .dtext{
+    padding:11px 13px;font-size:14.5px;line-height:1.72;
+    color:#4a443c;white-space:pre-wrap;word-break:break-word;
+  }
+  .draft.isdel .dtext{
+    color:#a9a29a;text-decoration:line-through;
+    text-decoration-color:#cfc7bb;
+  }
+
+  .vbody{display:flex;align-items:center;gap:11px;padding:13px 14px 6px}
+  .play{
+    width:27px;height:27px;border-radius:50%;flex:0 0 auto;
+    background:#c3b79f;color:#fff;font-size:11px;
+    display:flex;align-items:center;justify-content:center;padding-left:2px;
+  }
+  .wave{display:flex;align-items:center;gap:2.5px;height:24px;flex:1}
+  .wave i{display:block;width:2.5px;border-radius:2px;background:#d5cab5}
+  .dur{font-size:12px;color:#a99e8b;letter-spacing:.5px}
+  .vtext{
+    padding:2px 14px 13px;font-size:12px;color:#a99e8b;
+    line-height:1.9;letter-spacing:.3px;
+  }
+
+  .note{
+    margin:26px 0 8px;text-align:center;
+    font-size:12px;color:#9d978d;line-height:2.1;letter-spacing:.6px;
+  }
+  .end{
+    text-align:center;margin:26px 0 10px;
+    font-size:12px;color:#b5afa4;letter-spacing:8px;
+  }
+
+  footer{
+    flex:0 0 auto;
+    padding:8px 10px calc(env(safe-area-inset-bottom) + 8px);
+    background:#f7f7f7;border-top:1px solid var(--line);
+    display:flex;align-items:center;gap:8px;
+  }
+  .fakeinput{
+    flex:1;height:36px;border-radius:5px;background:#fff;
+    display:flex;align-items:center;padding:0 12px;
+    font-size:14px;color:#c2c2c2;letter-spacing:.5px;
+  }
+  .circle{
+    width:30px;height:30px;border-radius:50%;
+    border:1.5px solid #b9b9b9;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;
+    font-size:15px;color:#b9b9b9;
+  }
+
+  @media (prefers-reduced-motion:no-preference){
+    .time,.row,.draft,.split,.note{animation:up .45s ease both}
+  }
+  @keyframes up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="phone">
+  <header>
+    <span class="back">‹</span>
+    <div class="who"><b>林晚</b><i>对方正在输入…</i></div>
+    <span class="dots">···</span>
+  </header>
+
+  <main class="chat" id="chat"></main>
+
+  <footer>
+    <span class="circle">＋</span>
+    <div class="fakeinput">说点什么……</div>
+    <span class="circle">☺</span>
+  </footer>
+</div>
+
+<script>
+const D = [
+  {t:'title', h:'未发送', s:'他这辈子说过最狠的一句话，\n她答了一个“好”。'},
+
+  {t:'time', x:'2019年9月12日 22:41'},
+  {t:'me',  x:'到宿舍了吗'},
+  {t:'you', x:'到了'},
+  {t:'me',  x:'刚才在楼下磨蹭那么久'},
+  {t:'you', x:'看你走啊'},
+  {t:'me',  x:'傻不傻'},
+  {t:'me',  x:'上去吧，我看着你灯亮'},
+
+  {t:'time', x:'2019年10月3日 02:14'},
+  {t:'you', x:'江野我胃疼'},
+  {t:'you', x:'疼醒的'},
+  {t:'me',  x:'又不吃早饭'},
+  {t:'you', x:'你别骂我'},
+  {t:'me',  x:'二十分钟，开门'},
+
+  {t:'time', x:'2019年10月3日 02:51'},
+  {t:'you', x:'你手好凉'},
+  {t:'me',  x:'刚从冰箱拿的'},
+  {t:'you', x:'？'},
+  {t:'me',  x:'粥'},
+  {t:'you', x:'你大半夜煮粥'},
+  {t:'me',  x:'不然呢，让你疼着'},
+  {t:'you', x:'江野'},
+  {t:'you', x:'你以后天天给我煮'},
+  {t:'me',  x:'行'},
+  {t:'me',  x:'一辈子够不够'},
+
+  {t:'time', x:'2019年12月24日 23:02'},
+  {t:'me',  x:'平安夜快乐'},
+  {t:'you', x:'快乐'},
+  {t:'me',  x:'苹果吃了没'},
+  {t:'you', x:'你买的那个好丑'},
+  {t:'me',  x:'丑的甜'},
+  {t:'you', x:'歪理'},
+  {t:'you', x:'你也是歪的，我也要'},
+
+  {t:'time', x:'2020年3月17日 09:12'},
+  {t:'me',  x:'生日快乐小祖宗'},
+  {t:'you', x:'你怎么改备注了'},
+  {t:'me',  x:'上个月'},
+  {t:'you', x:'恶心'},
+  {t:'you', x:'我喜欢'},
+  {t:'me',  x:'花放楼下了，白玫瑰'},
+  {t:'you', x:'为什么是白的'},
+  {t:'me',  x:'第一次见你那天，你穿白裙子'},
+  {t:'you', x:'你还记得'},
+  {t:'me',  x:'记一辈子'},
+
+  {t:'time', x:'2020年7月8日 21:30'},
+  {t:'you', x:'江野，我们以后去看海吧'},
+  {t:'me',  x:'好'},
+  {t:'you', x:'去哪'},
+  {t:'me',  x:'青岛'},
+  {t:'me',  x:'我攒钱'},
+  {t:'you', x:'攒多久'},
+  {t:'me',  x:'一年'},
+  {t:'me',  x:'到时候我背你下海'},
+  {t:'you', x:'你说的'},
+  {t:'me',  x:'嗯，我记着'},
+
+  {t:'time', x:'2020年11月2日 23:40'},
+  {t:'you', x:'又疼了'},
+  {t:'me',  x:'让你天天喝冰的'},
+  {t:'you', x:'忍忍就过去了'},
+  {t:'me',  x:'忍什么忍，明天去医院'},
+  {t:'you', x:'明天要开会'},
+  {t:'me',  x:'那周末'},
+  {t:'you', x:'好'},
+
+  {t:'time', x:'2021年5月6日 19:22'},
+  {t:'you', x:'今天不用来接我了'},
+  {t:'me',  x:'为什么'},
+  {t:'you', x:'加班'},
+  {t:'me',  x:'我去你们公司楼下等'},
+  {t:'you', x:'别来'},
+  {t:'me',  x:'林晚？'},
+  {t:'you', x:'我说别来'},
+
+  {t:'time', x:'2021年5月6日 22:10'},
+  {t:'me',  x:'你最近怎么了'},
+  {t:'you', x:'没怎么'},
+  {t:'me',  x:'你手一直很凉'},
+  {t:'you', x:'贫血'},
+  {t:'me',  x:'去医院看看吧'},
+  {t:'you', x:'看过了'},
+  {t:'me',  x:'医生怎么说'},
+  {t:'you', x:'说没事'},
+  {t:'you', x:'江野'},
+  {t:'you', x:'如果我以后不在了，你会怎么样'},
+  {t:'me',  x:'说什么傻话'},
+  {t:'me',  x:'你不在我能怎么样，跟你一起呗'},
+  {t:'you', x:'别'},
+  {t:'you', x:'你别'},
+
+  {t:'time', x:'2021年5月20日 20:15'},
+  {t:'me',  x:'今天是520'},
+  {t:'me',  x:'我订了那家你爱吃的'},
+  {t:'you', x:'不去了'},
+  {t:'me',  x:'怎么了'},
+  {t:'you', x:'累'},
+  {t:'me',  x:'那我打包过去'},
+  {t:'you', x:'江野你别这样'},
+  {t:'me',  x:'我别哪样'},
+  {t:'you', x:'你别对我这么好'},
+  {t:'me',  x:'？'},
+
+  {t:'time', x:'2021年5月30日 23:40'},
+  {t:'me',  x:'林晚，我们谈谈'},
+  {t:'you', x:'没什么好谈的'},
+  {t:'me',  x:'你是不是有事瞒着我'},
+  {t:'you', x:'没有'},
+  {t:'me',  x:'你看着我说'},
+  {t:'you', x:'我很累'},
+  {t:'me',  x:'累什么'},
+
+  {t:'time', x:'2021年6月1日 21:07'},
+  {t:'you', x:'江野，我们分手吧'},
+  {t:'me',  x:'你说什么'},
+  {t:'me',  x:'你别开玩笑'},
+  {t:'you', x:'我们不合适'},
+  {t:'me',  x:'哪里不合适'},
+  {t:'me',  x:'你说清楚'},
+  {t:'you', x:'我从来没想过跟你结婚'},
+  {t:'me',  x:'骗人'},
+  {t:'me',  x:'你上个月还说要去看海'},
+  {t:'me',  x:'你说要背我下海'},
+  {t:'you', x:'随口说的'},
+  {t:'me',  x:'林晚'},
+  {t:'me',  x:'你看着我的眼睛说'},
+  {t:'me',  x:'你是不是病了'},
+  {t:'you', x:'你才有病'},
+  {t:'me',  x:'那你告诉我为什么'},
+  {t:'you', x:'因为我厌倦了'},
+  {t:'you', x:'因为我发现，没有你我也过得挺好'},
+  {t:'you', x:'江野，你别再来找我了'},
+  {t:'me',  x:'好'},
+  {t:'me',  x:'林晚，你记住'},
+  {t:'me',  x:'今天这话是你说的'},
+  {t:'me',  x:'以后你死了，我都不会去'},
+  {t:'you', x:'好'},
+
+  {t:'time', x:'2021年6月2日 07:33'},
+  {t:'me',  x:'昨天那句是气话'},
+  {t:'me',  x:'你回我一句'},
+  {t:'me',  x:'就一句'},
+
+  {t:'time', x:'2021年6月20日 22:10'},
+  {t:'me',  x:'我把备注改回来了'},
+  {t:'me',  x:'还是“小祖宗”'},
+  {t:'me',  x:'你什么时候回来改'},
+
+  {t:'time', x:'2021年8月14日 18:02'},
+  {t:'me',  x:'今天路过那家粥店'},
+  {t:'me',  x:'老板还问我，那个总喊胃疼的小姑娘呢'},
+
+  {t:'time', x:'2022年3月17日 23:59'},
+  {t:'me',  x:'生日快乐'},
+  {t:'me',  x:'白玫瑰我让花店送上去了'},
+  {t:'me',  x:'你不回我，我就每年都送'},
+
+  {t:'time', x:'2022年4月9日 21:03'},
+  {t:'me',  x:'林晚'},
+  {t:'me',  x:'我认输'},
+  {t:'me',  x:'你回来吧'},
+
+  {t:'time', x:'2022年5月20日 00:12'},
+  {t:'me',  x:'花收到了吗'},
+  {t:'me',  x:'你倒是回我一句啊'},
+
+  {t:'split', x:'2022年11月'},
+  {t:'time', x:'2022年11月2日 15:26'},
+  {t:'you', x:'江野，我是林晚妈妈'},
+  {t:'you', x:'你能不能来一趟'},
+  {t:'me',  x:'阿姨？'},
+  {t:'me',  x:'她怎么了'},
+  {t:'you', x:'她走了'},
+  {t:'you', x:'四月九号'},
+  {t:'me',  x:'阿姨您别开玩笑'},
+  {t:'me',  x:'四月九号我还给她发过消息'},
+  {t:'you', x:'她手机一直在我这儿'},
+  {t:'you', x:'四月十二下的葬'},
+  {t:'me',  x:'……'},
+  {t:'me',  x:'对不起'},
+  {t:'you', x:'你别跟我说这个'},
+  {t:'you', x:'她走之前交代，要是江野来了，让他站远一点'},
+  {t:'you', x:'她说她那时候不好看'},
+  {t:'me',  x:'……'},
+  {t:'you', x:'还有件事'},
+  {t:'you', x:'她给你存的备注'},
+  {t:'you', x:'是“粥”'},
+  {t:'you', x:'我一直没敢问你是什么意思'},
+  {t:'me',  x:'没什么'},
+  {t:'me',  x:'就是一碗粥'},
+
+  {t:'time', x:'2022年11月3日 02:10'},
+  {t:'you', x:'还有一件'},
+  {t:'you', x:'她让我跟你说，她是跟别人走了'},
+  {t:'you', x:'说这样你才断得干净'},
+  {t:'you', x:'我没说得出口'},
+  {t:'me',  x:'……'},
+  {t:'me',  x:'谢谢阿姨'},
+  {t:'me',  x:'谢谢您没说'},
+
+  {t:'split', x:'林晚的手机 · 未发送'},
+
+  {t:'note', x:'她的聊天框里，\n一屏又一屏没有发出去的话。\n从2021年6月1日，排到2022年4月9日。'},
+
+  {t:'draft', d:'2021.6.1  23:41', del:true, x:'江野，我确诊了，胃癌，晚期。'},
+  {t:'draft', d:'2021.6.3', x:'第一次化疗。吐了六次。\n我把手机放在床头，等它响。\n它没响。'},
+  {t:'draft', d:'2021.6.17', x:'你发了好多消息，我一条一条看了。\n我不敢回。\n我怕我一开口就说，你救救我。'},
+  {t:'draft', d:'2021.7.15', x:'青岛我没去。\n机票我看了十七遍，最后关了。\n我走不完那段路了。'},
+  {t:'draft', d:'2021.8.9', x:'头发开始掉了。\n还好你不在。\n你最怕看见我难看的样子。'},
+  {t:'draft', d:'2021.9.30', x:'今天疼得厉害，护士问我家属电话。\n我报了你的号，又改成我妈的。'},
+  {t:'draft', d:'2021.11.20', x:'江野，如果哪天我不疼了，我就去找你。'},
+  {t:'draft', d:'2021.12.24', x:'平安夜。\n今年没人给我买苹果了。'},
+  {t:'draft', d:'2022.3.17', x:'生日快乐，我。\n妈把白玫瑰抱到病房来了，卡片上是“小祖宗”。\n我抱着花坐了一下午。\n我一直都是啊。'},
+  {t:'draft', d:'2022.4.9  23:12', x:'江野，我可能等不到你了。\n你别恨我太久。'},
+  {t:'draft', d:'2022.4.9  23:20', x:'你发的我看见了。\n你认输干什么呀。\n我从来没赢过。'},
+
+  {t:'voice', d:'2022.4.9  23:36',
+   x:'他点了播放。\n\n前面九秒，只有呼吸声。很轻，很费劲。\n\n第九秒，她说：不疼。\n\n第十秒，她笑了一下。\n\n第十一秒，结束了。'},
+
+  {t:'note', x:'她 23:40 走的。\n这条语音她录了四次，前三次都删了。\n\n他听了四十七遍。\n前四十六遍，他只听见呼吸。\n第四十七遍，他听见她说：不疼。\n\n可那天晚上，没有人问她疼不疼。'},
+
+  {t:'split', x:'一年后'},
+  {t:'time', x:'2023年10月3日 02:14'},
+  {t:'you', av:'粥', x:'江先生您好，我是楼下粥店的'},
+  {t:'you', av:'粥', x:'林小姐在我们店预付了十年'},
+  {t:'you', av:'粥', x:'每年十月三号凌晨两点，一碗粥，送到您这儿'},
+  {t:'you', av:'粥', x:'她付到2032年'},
+  {t:'you', av:'粥', x:'今年是第二年，请问还送吗'},
+  {t:'me',  x:'送'},
+  {t:'me',  x:'她什么时候订的'},
+  {t:'you', av:'粥', x:'2021年5月6号'},
+  {t:'me',  x:'……'},
+  {t:'me',  x:'卡片呢'},
+  {t:'you', av:'粥', x:'有'},
+  {t:'you', av:'粥', x:'「趁热喝。别不吃早饭。」'},
+
+  {t:'time', x:'2023年10月3日 02:51'},
+  {t:'me',  x:'林晚'},
+  {t:'me',  x:'我胃疼'},
+  {t:'me',  x:'疼醒的'},
+  {t:'me',  x:'二十分钟，开门'},
+  {t:'fail'},
+
+  {t:'note', x:'那碗粥他喝了。\n凉的也喝了。'},
+
+  {t:'split', x:'2024年1月'},
+  {t:'time', x:'2024年1月18日 16:20'},
+  {t:'you', av:'护', x:'江先生，明天上午第一台，今晚十点以后别吃东西'},
+  {t:'me',  x:'好'},
+  {t:'you', av:'护', x:'家属签字那栏，留个电话吧'},
+  {t:'me',  x:'137……'},
+  {t:'me',  x:'算了'},
+  {t:'me',  x:'留我妈的吧'},
+  {t:'you', av:'护', x:'刚才那个号是谁的'},
+  {t:'me',  x:'一个朋友'},
+
+  {t:'note', x:'手术很顺利。医生说发现得早，切掉就好了。\n\n他从开始疼，到躺上检查床，用了一个星期。\n她疼了两年，他一次都没逼她去过。\n\n后来每年十月三号凌晨两点十四分，\n他还是会下楼，站在门口等。\n他说怕外卖员找不到门。\n\n他等的不是粥。'},
+  {t:'end', x:'完'}
+];
+
+const chat = document.getElementById('chat');
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const WAVE = [6,10,14,9,18,12,20,15,8,16,11,19,13,7,15,10,17,12,6,14,9,16,11,8];
+
+let html = '';
+for (const m of D){
+  switch(m.t){
+    case 'title':
+      html += `<div class="titlecard"><h1>${m.h}</h1><p>${m.s.replace(/\n/g,'<br>')}</p></div>`;
+      break;
+    case 'time':
+      html += `<div class="time">${m.x}</div>`;
+      break;
+    case 'split':
+      html += `<div class="split">${m.x}</div>`;
+      break;
+    case 'note':
+      html += `<div class="note">${esc(m.x).replace(/\n/g,'<br>')}</div>`;
+      break;
+    case 'end':
+      html += `<div class="end">${m.x}</div>`;
+      break;
+    case 'me':
+      html += `<div class="row me"><div class="av me">野</div><div class="bub">${esc(m.x)}</div></div>`;
+      break;
+    case 'you':
+      html += `<div class="row you"><div class="av ${m.av?'q':'you'}">${m.av||'晚'}</div><div class="bub">${esc(m.x)}</div></div>`;
+      break;
+    case 'draft':
+      html += `<div class="draft ${m.del?'isdel':''}">
+        <div class="dhead">
+          <span class="badge ${m.del?'del':''}">${m.del?'已删除':'未发送'}</span>
+          <span class="ddate">${m.d}</span>
+        </div>
+        <div class="dtext">${esc(m.x)}</div>
+      </div>`;
+      break;
+    case 'voice':
+      html += `<div class="draft">
+        <div class="dhead">
+          <span class="badge">未发送</span>
+          <span class="ddate">${m.d}</span>
+        </div>
+        <div class="vbody">
+          <span class="play">▶</span>
+          <span class="wave">${WAVE.map(h=>`<i style="height:${h}px"></i>`).join('')}</span>
+          <span class="dur">11″</span>
+        </div>
+        <div class="vtext">${esc(m.x).replace(/\n/g,'<br>')}</div>
+      </div>`;
+      break;
+    case 'fail':
+      html += `<div class="row me fail"><div class="bang">!</div><div class="bub">消息已发出，但被对方拒收了。</div></div>`;
+      break;
+  }
+}
+chat.innerHTML = html;
+chat.scrollTop = 0;
+</script>
+</body>
+</html>
